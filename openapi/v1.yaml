@@ -1,0 +1,313 @@
+openapi: 3.0.3
+info:
+  title: AppConnect API
+  version: 2.0.0 (v1)
+  description: Employee records API and app marketplace. Third-party apps install
+    via OAuth 2.0 and receive HMAC-signed webhooks for hire, update and termination
+    events.
+paths:
+  /api/v1/employees/:
+    get:
+      operationId: employees_list
+      description: 'Employee records, v1 shape (deprecated: integer ids, page-number
+        pagination).'
+      summary: List employees
+      parameters:
+      - name: department
+        in: query
+        required: false
+        description: Filter by `department`. Comma-separate to match several values.
+        schema:
+          type: string
+      - name: employment_type
+        in: query
+        required: false
+        description: Filter by `employment_type`. Comma-separate to match several
+          values.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        description: Filter by `status`. Comma-separate to match several values.
+        schema:
+          type: string
+      tags:
+      - employees
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      deprecated: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEmployeeV1List'
+          description: ''
+    post:
+      operationId: employees_create
+      description: 'Employee records, v1 shape (deprecated: integer ids, page-number
+        pagination).'
+      summary: Create an employee
+      tags:
+      - employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeV1Request'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmployeeV1Request'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmployeeV1Request'
+        required: true
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      deprecated: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeV1'
+          description: ''
+  /api/v1/employees/{id}/:
+    get:
+      operationId: employees_retrieve
+      description: 'Employee records, v1 shape (deprecated: integer ids, page-number
+        pagination).'
+      summary: Get an employee
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this employee.
+        required: true
+      tags:
+      - employees
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      deprecated: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeV1'
+          description: ''
+    patch:
+      operationId: employees_partial_update
+      description: 'Employee records, v1 shape (deprecated: integer ids, page-number
+        pagination).'
+      summary: Update an employee
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this employee.
+        required: true
+      tags:
+      - employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeV1Request'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeV1Request'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeV1Request'
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      deprecated: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeV1'
+          description: ''
+components:
+  schemas:
+    EmployeeStatusEnum:
+      enum:
+      - active
+      - on_leave
+      - terminated
+      type: string
+      description: |-
+        * `active` - Active
+        * `on_leave` - On leave
+        * `terminated` - Terminated
+    EmployeeV1:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        department:
+          type: string
+          maxLength: 100
+        title:
+          type: string
+          maxLength: 150
+        status:
+          $ref: '#/components/schemas/EmployeeStatusEnum'
+        hire_date:
+          type: string
+          format: date
+      required:
+      - email
+      - first_name
+      - hire_date
+      - id
+      - last_name
+    EmployeeV1Request:
+      type: object
+      properties:
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        department:
+          type: string
+          maxLength: 100
+        title:
+          type: string
+          maxLength: 150
+        status:
+          $ref: '#/components/schemas/EmployeeStatusEnum'
+        hire_date:
+          type: string
+          format: date
+      required:
+      - email
+      - first_name
+      - hire_date
+      - last_name
+    PaginatedEmployeeV1List:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmployeeV1'
+    PatchedEmployeeV1Request:
+      type: object
+      properties:
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        department:
+          type: string
+          maxLength: 100
+        title:
+          type: string
+          maxLength: 150
+        status:
+          $ref: '#/components/schemas/EmployeeStatusEnum'
+        hire_date:
+          type: string
+          format: date
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: /api/v2/apps/{slug}/install/
+          tokenUrl: /oauth/token/
+          scopes:
+            employees:read: Read employee records
+            employees:write: Create and update employee records
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"

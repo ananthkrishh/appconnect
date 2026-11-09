@@ -1,0 +1,39 @@
+[project]
+name = "appconnect"
+version = "2.0.0"
+description = "Integration platform and app marketplace for employee records"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "S", "SIM", "RUF"]
+ignore = ["RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S311"]
+"apps/employees/management/commands/seed_demo.py" = ["S106"]
+"config/settings.py" = ["S105"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+  "integration: end-to-end tests across API, OAuth, outbox and Celery (need Postgres)",
+]
+filterwarnings = ["ignore::DeprecationWarning:celery.*"]
+
+[tool.coverage.run]
+source = ["apps", "config", "scripts"]
+omit = ["*/migrations/*", "config/wsgi.py", "*/management/commands/seed_demo.py"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 85
+exclude_also = ["if __name__ == .__main__.:", "pragma: no cover"]

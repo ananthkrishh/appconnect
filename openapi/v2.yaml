@@ -1,0 +1,1134 @@
+openapi: 3.0.3
+info:
+  title: AppConnect API
+  version: 2.0.0 (v2)
+  description: Employee records API and app marketplace. Third-party apps install
+    via OAuth 2.0 and receive HMAC-signed webhooks for hire, update and termination
+    events.
+paths:
+  /api/v2/apps/:
+    get:
+      operationId: apps_list
+      description: Third-party apps available to install.
+      summary: Browse the app marketplace
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - apps
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAppList'
+          description: ''
+  /api/v2/apps/{id}/:
+    get:
+      operationId: apps_retrieve
+      description: Third-party apps available to install.
+      summary: Get an app listing
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - apps
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/App'
+          description: ''
+  /api/v2/apps/{id}/install/:
+    post:
+      operationId: apps_install_create
+      description: Admin consent step of the OAuth 2.0 authorization code flow. Creates
+        a pending installation and returns the app's redirect URL carrying a one-time
+        authorization code. The installation becomes active once the app exchanges
+        the code at `/oauth/token/`.
+      summary: Install an app
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - apps
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstallRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InstallRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InstallRequestRequest'
+        required: true
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstallResponse'
+          description: ''
+  /api/v2/employees/:
+    get:
+      operationId: employees_list
+      description: Employee records. Changes are pushed to installed apps as webhooks.
+      summary: List employees
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: department
+        in: query
+        required: false
+        description: Filter by `department`. Comma-separate to match several values.
+        schema:
+          type: string
+      - name: employment_type
+        in: query
+        required: false
+        description: Filter by `employment_type`. Comma-separate to match several
+          values.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        description: Filter by `status`. Comma-separate to match several values.
+        schema:
+          type: string
+      - name: updated_since
+        in: query
+        required: false
+        description: Filter by `updated_since`. Comma-separate to match several values.
+        schema:
+          type: string
+      tags:
+      - employees
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEmployeeV2List'
+          description: ''
+    post:
+      operationId: employees_create
+      description: Publishes `employee.hired`.
+      summary: Hire an employee
+      tags:
+      - employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeV2Request'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmployeeV2Request'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmployeeV2Request'
+        required: true
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeV2'
+          description: ''
+  /api/v2/employees/{id}/:
+    get:
+      operationId: employees_retrieve
+      description: Employee records. Changes are pushed to installed apps as webhooks.
+      summary: Get an employee
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - employees
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeV2'
+          description: ''
+    patch:
+      operationId: employees_partial_update
+      description: Publishes `employee.updated`.
+      summary: Update an employee
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeV2Request'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeV2Request'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeV2Request'
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeV2'
+          description: ''
+  /api/v2/employees/{id}/terminate/:
+    post:
+      operationId: employees_terminate_create
+      description: Sets status to `terminated` and publishes `employee.terminated`.
+      summary: Terminate an employee
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TerminateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TerminateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TerminateRequest'
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeV2'
+          description: ''
+  /api/v2/installations/:
+    get:
+      operationId: installations_list
+      description: Apps installed in this organisation.
+      summary: List installations
+      parameters:
+      - name: app
+        in: query
+        required: false
+        description: Filter by `app`. Comma-separate to match several values.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        description: Filter by `status`. Comma-separate to match several values.
+        schema:
+          type: string
+      tags:
+      - installations
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInstallationList'
+          description: ''
+  /api/v2/installations/{id}/:
+    get:
+      operationId: installations_retrieve
+      description: Apps installed in this organisation.
+      summary: Get an installation
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this installation.
+        required: true
+      tags:
+      - installations
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Installation'
+          description: ''
+    delete:
+      operationId: installations_destroy
+      description: Revokes the app's tokens, cancels pending webhooks and sends `app.uninstalled`.
+      summary: Uninstall an app
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this installation.
+        required: true
+      tags:
+      - installations
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v2/webhook-deliveries/:
+    get:
+      operationId: webhook_deliveries_list
+      description: Delivery log for outbound webhooks, with manual replay.
+      summary: List webhook deliveries
+      parameters:
+      - name: event_type
+        in: query
+        required: false
+        description: Filter by `event_type`. Comma-separate to match several values.
+        schema:
+          type: string
+      - name: installation
+        in: query
+        required: false
+        description: Filter by `installation`. Comma-separate to match several values.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        description: Filter by `status`. Comma-separate to match several values.
+        schema:
+          type: string
+      tags:
+      - webhook-deliveries
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWebhookDeliveryList'
+          description: ''
+  /api/v2/webhook-deliveries/{id}/:
+    get:
+      operationId: webhook_deliveries_retrieve
+      description: Delivery log for outbound webhooks, with manual replay.
+      summary: Get a webhook delivery
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this webhook delivery.
+        required: true
+      tags:
+      - webhook-deliveries
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDelivery'
+          description: ''
+  /api/v2/webhook-deliveries/{id}/replay/:
+    post:
+      operationId: webhook_deliveries_replay_create
+      description: Delivery log for outbound webhooks, with manual replay.
+      summary: Replay a failed delivery
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this webhook delivery.
+        required: true
+      tags:
+      - webhook-deliveries
+      security:
+      - oauth2: []
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDelivery'
+          description: ''
+  /oauth/revoke/:
+    post:
+      operationId: oauth_revoke_create
+      description: OAuth 2.0 token revocation (RFC 7009).
+      summary: Revoke an access or refresh token
+      tags:
+      - oauth
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RevokeRequestRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokeRequestRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          description: Token revoked (or was already invalid)
+  /oauth/token/:
+    post:
+      operationId: oauth_token_create
+      description: OAuth 2.0 token endpoint (RFC 6749). Accepts form or JSON bodies.
+      summary: Exchange an authorization code or refresh token
+      tags:
+      - oauth
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRequestRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequestRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+          description: ''
+        '400':
+          description: RFC 6749 error
+components:
+  schemas:
+    App:
+      type: object
+      properties:
+        slug:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+        developer:
+          type: string
+          maxLength: 120
+        homepage_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
+        scopes:
+          description: Scopes the app may request.
+        events:
+          description: Webhook events the app subscribes to.
+        installed:
+          type: boolean
+          readOnly: true
+        has_connector:
+          type: boolean
+          readOnly: true
+      required:
+      - developer
+      - has_connector
+      - installed
+      - name
+      - slug
+    CodeChallengeMethodEnum:
+      enum:
+      - S256
+      type: string
+      description: '* `S256` - S256'
+    DeliveryStatusEnum:
+      enum:
+      - pending
+      - succeeded
+      - failed
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `succeeded` - Succeeded
+        * `failed` - Failed
+        * `cancelled` - Cancelled
+    EmployeeStatusEnum:
+      enum:
+      - active
+      - on_leave
+      - terminated
+      type: string
+      description: |-
+        * `active` - Active
+        * `on_leave` - On leave
+        * `terminated` - Terminated
+    EmployeeV2:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        full_name:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        department:
+          type: string
+          maxLength: 100
+        job_title:
+          type: string
+          maxLength: 150
+        employment_type:
+          $ref: '#/components/schemas/EmploymentTypeEnum'
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EmployeeStatusEnum'
+          readOnly: true
+        hire_date:
+          type: string
+          format: date
+        termination_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        manager_id:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - first_name
+      - full_name
+      - hire_date
+      - id
+      - last_name
+      - status
+      - termination_date
+      - updated_at
+    EmployeeV2Request:
+      type: object
+      properties:
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        department:
+          type: string
+          maxLength: 100
+        job_title:
+          type: string
+          maxLength: 150
+        employment_type:
+          $ref: '#/components/schemas/EmploymentTypeEnum'
+        hire_date:
+          type: string
+          format: date
+        manager_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - email
+      - first_name
+      - hire_date
+      - last_name
+    EmploymentTypeEnum:
+      enum:
+      - full_time
+      - part_time
+      - contractor
+      type: string
+      description: |-
+        * `full_time` - Full time
+        * `part_time` - Part time
+        * `contractor` - Contractor
+    GrantTypeEnum:
+      enum:
+      - authorization_code
+      - refresh_token
+      type: string
+      description: |-
+        * `authorization_code` - authorization_code
+        * `refresh_token` - refresh_token
+    InstallRequestRequest:
+      type: object
+      properties:
+        redirect_uri:
+          type: string
+          format: uri
+          minLength: 1
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopesEnum'
+        state:
+          type: string
+          maxLength: 200
+        code_challenge:
+          type: string
+          maxLength: 128
+        code_challenge_method:
+          $ref: '#/components/schemas/CodeChallengeMethodEnum'
+      required:
+      - redirect_uri
+    InstallResponse:
+      type: object
+      properties:
+        installation:
+          $ref: '#/components/schemas/Installation'
+        redirect_url:
+          type: string
+          format: uri
+          description: Send the admin's browser here to complete the OAuth handshake.
+        webhook_secret:
+          type: string
+          description: Shown once. Used by the app to verify webhook signatures.
+      required:
+      - installation
+      - redirect_url
+      - webhook_secret
+    Installation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        app:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InstallationStatusEnum'
+          readOnly: true
+          default: pending
+        scopes:
+          readOnly: true
+        installed_by:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        activated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        uninstalled_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - activated_at
+      - app
+      - created_at
+      - id
+      - installed_by
+      - scopes
+      - status
+      - uninstalled_at
+    InstallationStatusEnum:
+      enum:
+      - pending
+      - active
+      - uninstalled
+      type: string
+      description: |-
+        * `pending` - Pending authorization
+        * `active` - Active
+        * `uninstalled` - Uninstalled
+    PaginatedAppList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/App'
+    PaginatedEmployeeV2List:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmployeeV2'
+    PaginatedInstallationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Installation'
+    PaginatedWebhookDeliveryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookDelivery'
+    PatchedEmployeeV2Request:
+      type: object
+      properties:
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        department:
+          type: string
+          maxLength: 100
+        job_title:
+          type: string
+          maxLength: 150
+        employment_type:
+          $ref: '#/components/schemas/EmploymentTypeEnum'
+        hire_date:
+          type: string
+          format: date
+        manager_id:
+          type: string
+          format: uuid
+          nullable: true
+    RevokeRequestRequest:
+      type: object
+      properties:
+        client_id:
+          type: string
+          minLength: 1
+        client_secret:
+          type: string
+          minLength: 1
+        token:
+          type: string
+          minLength: 1
+      required:
+      - client_id
+      - client_secret
+      - token
+    ScopesEnum:
+      enum:
+      - employees:read
+      - employees:write
+      type: string
+      description: |-
+        * `employees:read` - employees:read
+        * `employees:write` - employees:write
+    TerminateRequest:
+      type: object
+      properties:
+        termination_date:
+          type: string
+          format: date
+    TokenRequestRequest:
+      type: object
+      properties:
+        grant_type:
+          $ref: '#/components/schemas/GrantTypeEnum'
+        client_id:
+          type: string
+          minLength: 1
+        client_secret:
+          type: string
+          minLength: 1
+        code:
+          type: string
+          minLength: 1
+        redirect_uri:
+          type: string
+          minLength: 1
+        code_verifier:
+          type: string
+          minLength: 1
+        refresh_token:
+          type: string
+          minLength: 1
+      required:
+      - client_id
+      - client_secret
+      - grant_type
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+        expires_in:
+          type: integer
+        refresh_token:
+          type: string
+        scope:
+          type: string
+        installation_id:
+          type: integer
+      required:
+      - access_token
+      - expires_in
+      - installation_id
+      - refresh_token
+      - scope
+      - token_type
+    WebhookDelivery:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        installation:
+          type: integer
+          readOnly: true
+        app:
+          type: string
+          readOnly: true
+        event_id:
+          type: string
+          format: uuid
+          readOnly: true
+        event_type:
+          type: string
+          readOnly: true
+        idempotency_key:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/DeliveryStatusEnum'
+          readOnly: true
+        attempts:
+          type: integer
+          readOnly: true
+        replay_count:
+          type: integer
+          readOnly: true
+        next_attempt_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_attempt_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_status_code:
+          type: integer
+          readOnly: true
+          nullable: true
+        last_error:
+          type: string
+          readOnly: true
+        delivered_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        payload:
+          readOnly: true
+      required:
+      - app
+      - attempts
+      - created_at
+      - delivered_at
+      - event_id
+      - event_type
+      - id
+      - idempotency_key
+      - installation
+      - last_attempt_at
+      - last_error
+      - last_status_code
+      - next_attempt_at
+      - payload
+      - replay_count
+      - status
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: /api/v2/apps/{slug}/install/
+          tokenUrl: /oauth/token/
+          scopes:
+            employees:read: Read employee records
+            employees:write: Create and update employee records
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"

@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: Acme Payroll API
+  version: 1.4.0
+  description: Example third-party payroll app used to demo the connector generator.
+paths:
+  /workers:
+    post:
+      summary: Create a worker
+      operationId: createWorker
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkerCreate"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Worker"
+  /pay-groups:
+    post:
+      summary: Create a pay group
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayGroup"
+      responses:
+        "201":
+          description: Created
+components:
+  schemas:
+    PayGroup:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        frequency: { type: string, enum: [weekly, biweekly, monthly] }
+    Worker:
+      allOf:
+        - $ref: "#/components/schemas/WorkerCreate"
+        - type: object
+          properties:
+            id: { type: string, readOnly: true }
+    WorkerCreate:
+      type: object
+      required: [externalId, givenName, familyName, contact, startDate, workerType, isActive]
+      properties:
+        externalId:
+          type: string
+          description: Your system's identifier for this person.
+        givenName: { type: string }
+        familyName: { type: string }
+        contact:
+          type: object
+          required: [workEmail]
+          properties:
+            workEmail: { type: string, format: email }
+            phone: { type: string }
+        position:
+          type: string
+          description: Job title.
+        team: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date, nullable: true }
+        workerType:
+          type: string
+          enum: [EMPLOYEE_FT, EMPLOYEE_PT, CONTRACTOR]
+        isActive: { type: boolean }
+        costCenter: { type: string }

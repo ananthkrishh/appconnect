@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  DJANGO_SECRET_KEY: ci-only-secret
+  DATABASE_URL: postgres://appconnect:appconnect@localhost:5432/appconnect
+  REDIS_URL: redis://localhost:6379/0
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install ruff==0.17.4
+      - run: ruff check --output-format=github .
+      - run: ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: appconnect
+          POSTGRES_PASSWORD: appconnect
+          POSTGRES_DB: appconnect
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U appconnect" --health-interval 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+
+      - name: Migrations are up to date
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Unit tests
+        run: pytest -m "not integration" --cov --cov-report= --junitxml=reports/unit.xml
+
+      - name: Integration tests
+        run: pytest -m integration --cov --cov-append --cov-report= --junitxml=reports/integration.xml
+
+      - name: Coverage gate (85%)
+        run: |
+          coverage report --fail-under=85
+          coverage xml -o reports/coverage.xml
+          coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: reports/
+
+  openapi:
+    name: OpenAPI breaking-change check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -r requirements.txt
+
+      - name: Committed schemas match the code
+        run: |
+          python manage.py spectacular --api-version v1 --validate --file openapi/v1.yaml
+          python manage.py spectacular --api-version v2 --validate --file openapi/v2.yaml
+          git diff --exit-code openapi/ || {
+            echo "::error::openapi/*.yaml is stale. Run 'make openapi' and commit the result."
+            exit 1
+          }
+
+      - name: No breaking changes to v2
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$BASE_SHA:openapi/v2.yaml" 2>/dev/null; then
+            echo "No base v2 schema to compare against; skipping."
+            exit 0
+          fi
+          git show "$BASE_SHA:openapi/v2.yaml" > /tmp/base-v2.yaml
+          python scripts/openapi_diff.py /tmp/base-v2.yaml openapi/v2.yaml --prefix /api/v2/ | tee -a "$GITHUB_STEP_SUMMARY"
